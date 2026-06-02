@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,6 +11,99 @@ model User {
   id        String   @id @default(cuid())
   username  String   @unique
   password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile?
+  patients  Patient[] @relation("DoctorPatients")
+  chatSessions ChatSession[]
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName String?
+  lastName  String?
+  phone     String?
+  age       Int?
+  location  String?
+  language  String   @default("fa")
+  role      String   @default("patient")
+  specialization String?
+  level          String?
+  department     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  doctorId  String?
+  doctor    User?    @relation("DoctorPatients", fields: [doctorId], references: [id], onDelete: SetNull)
+
+  fullName      String
+  nationalId    String
+  birthDate     String?
+  gender        String   @default("male")
+  phoneNumber   String?
+  addressCity   String?
+
+  medicalHistoryUnderlyingDiseases String?
+  medicalHistoryPreviousSurgeries  String?
+  medicalHistoryHospitalization    String?
+  medicalHistoryInfectiousDisease  String?
+
+  drugAllergies String?
+  foodAllergies String?
+
+  currentMedications String?
+  supplements        String?
+
+  bloodPressure String?
+  weight        String?
+  height        String?
+  bmi           String?
+
+  smokingAlcohol String?
+  activityLevel  String?
+
+  files String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dietPlans     DietPlan[]
+  surgeryGuides SurgeryGuide[]
+}
+
+model DietPlan {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title     String?
+  data      String
+  type      String   @default("postOp")
+  createdAt DateTime @default(now())
+}
+
+model SurgeryGuide {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  surgeryType String?
+  preOp       String   @default("[]")
+  postOp      String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientId String?
+  title     String   @default("گفتگوی جدید")
+  messages  String   @default("[]")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

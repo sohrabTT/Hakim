@@ -37,7 +37,7 @@ interface Patient {
   fullName: string
   nationalId: string
   birthDate: string
-  gender: 'male' | 'female' | 'other'
+  gender: string
   medicalHistory: {
     underlyingDiseases: string[]
     previousSurgeries: string
@@ -86,12 +86,50 @@ export default function DoctorChatPage() {
     if (!authLoading && (!user || profile?.role !== 'doctor')) {
       router.push('/')
     }
-
-    const savedPatients = localStorage.getItem('doctor-patients')
-    if (savedPatients) {
-      setPatients(JSON.parse(savedPatients))
-    }
+    loadPatients()
   }, [user, profile, authLoading, router])
+
+  const loadPatients = async () => {
+    try {
+      const res = await fetch('/api/patients')
+      if (res.ok) {
+        const data = await res.json()
+        setPatients(data.map((p: any) => ({
+          id: p.id,
+          fullName: p.fullName,
+          nationalId: p.nationalId,
+          birthDate: p.birthDate || '',
+          gender: p.gender,
+          medicalHistory: {
+            underlyingDiseases: JSON.parse(p.medicalHistoryUnderlyingDiseases || '[]'),
+            previousSurgeries: p.medicalHistoryPreviousSurgeries || '',
+            hospitalizationHistory: p.medicalHistoryHospitalization || '',
+            infectiousDiseaseHistory: p.medicalHistoryInfectiousDisease || '',
+          },
+          allergies: {
+            drugAllergies: p.drugAllergies || '',
+            foodAllergies: p.foodAllergies || '',
+          },
+          medications: {
+            currentMedications: p.currentMedications || '',
+            supplements: p.supplements || '',
+          },
+          vitalSigns: {
+            bloodPressure: p.bloodPressure || '',
+            weight: p.weight || '',
+            height: p.height || '',
+            bmi: p.bmi || '',
+          },
+          lifestyle: {
+            smokingAlcohol: p.smokingAlcohol || '',
+            activityLevel: p.activityLevel || '',
+          },
+        })))
+      }
+    } catch (error) {
+      console.error('Failed to load patients:', error)
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -108,21 +146,9 @@ export default function DoctorChatPage() {
 
   useEffect(() => {
     if (selectedPatient) {
-      const savedHistory = localStorage.getItem(`doctor-chat-history-${selectedPatient.id}`)
-      if (savedHistory) {
-        setMessages(JSON.parse(savedHistory))
-      } else {
-        setMessages([])
-      }
+      setMessages([])
     }
   }, [selectedPatient])
-
-  // Save messages to patient history whenever they change
-  useEffect(() => {
-    if (selectedPatient && messages.length > 0) {
-      localStorage.setItem(`doctor-chat-history-${selectedPatient.id}`, JSON.stringify(messages))
-    }
-  }, [messages, selectedPatient])
 
   const handleSendMessage = async (userMessage: string, image?: string) => {
     if (!selectedPatient) return
@@ -135,7 +161,6 @@ export default function DoctorChatPage() {
     setIsLoading(true)
 
     try {
-      // Create patient context for the prompt
       const patientContext = `
 اطلاعات بیمار جهت کانتکست:
 نام: ${selectedPatient.fullName}
@@ -158,7 +183,7 @@ export default function DoctorChatPage() {
           userProfile: {
             ...profile,
             role: 'doctor',
-            patientContext // Send patient context to API
+            patientContext,
           },
         }),
       })
@@ -235,7 +260,6 @@ export default function DoctorChatPage() {
 
   return (
     <div className="flex h-screen bg-white dark:bg-[#0a0a0a] overflow-hidden" dir="rtl">
-      {/* Patients Sidebar */}
       <aside className="w-80 border-l border-slate-200 dark:border-white/5 flex flex-col bg-slate-50/50 dark:bg-[#0c0c0c]/50 backdrop-blur-xl">
         <div className="p-6 border-b border-slate-200 dark:border-white/5">
           <div className="flex items-center gap-4 mb-6">
@@ -267,7 +291,7 @@ export default function DoctorChatPage() {
                 key={patient.id}
                 onClick={() => {
                   setSelectedPatient(patient)
-                  setMessages([]) // Clear chat when patient changes
+                  setMessages([])
                 }}
                 className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 text-right ${
                   selectedPatient?.id === patient.id
@@ -299,9 +323,7 @@ export default function DoctorChatPage() {
         </ScrollArea>
       </aside>
 
-      {/* Main Chat Area */}
       <main className="flex-1 flex flex-col relative bg-white dark:bg-[#0a0a0a]">
-        {/* Chat Header */}
         <header className="h-20 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-8 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md z-10">
           <div className="flex items-center gap-4">
             {selectedPatient ? (
@@ -347,7 +369,6 @@ export default function DoctorChatPage() {
           </div>
         </header>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-4xl mx-auto space-y-8">
             {messages.length === 0 && selectedPatient && (
@@ -376,7 +397,6 @@ export default function DoctorChatPage() {
           </div>
         </div>
 
-        {/* Input */}
         <div className="p-8 border-t border-slate-200 dark:border-white/5 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md">
           <div className="max-w-4xl mx-auto">
             <ChatInput 

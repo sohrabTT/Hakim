@@ -62,6 +62,41 @@ export default function ChatPage() {
     }
   }, [authLoading, user, isOnboarded, profile, router])
 
+  useEffect(() => {
+    loadSessions()
+  }, [user])
+
+  const loadSessions = async () => {
+    try {
+      const res = await fetch('/api/chat-sessions')
+      if (res.ok) {
+        const data = await res.json()
+        setSessions(data.map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          date: new Date(s.updatedAt),
+          messages: JSON.parse(s.messages || '[]'),
+        })))
+      }
+    } catch (error) {
+      console.error('Failed to load sessions:', error)
+    }
+  }
+
+  const saveSessions = async (updatedSessions: ChatSession[]) => {
+    setSessions(updatedSessions)
+    for (const session of updatedSessions) {
+      await fetch(`/api/chat-sessions/${session.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: session.title,
+          messages: session.messages,
+        }),
+      })
+    }
+  }
+
   const handleShare = async () => {
     const url = window.location.origin + (currentSessionId ? `?session=${currentSessionId}` : '')
     try {
@@ -80,40 +115,6 @@ export default function ChatPage() {
     }
   }
 
-  // Load sessions from localStorage
-  useEffect(() => {
-    const savedSessions = localStorage.getItem('chat-sessions')
-    if (savedSessions) {
-      const parsed = JSON.parse(savedSessions)
-      setSessions(parsed)
-    }
-  }, [])
-
-  // Auto-save current chat
-  useEffect(() => {
-    if (messages.length > 0 && currentSessionId) {
-      setSessions((prev) => {
-        const updated = prev.map((s) => {
-          if (s.id === currentSessionId) {
-            // Clean up heavy image data from history before saving to localStorage
-            const cleanedMessages = messages.map((m, idx) => {
-              // If it has an image and it's not the latest message, remove the base64 string
-              // to satisfy "not saving as message image" requirement and save space
-              if (m.image && idx < messages.length - 1) {
-                return { ...m, image: undefined, hasImage: true };
-              }
-              return m;
-            });
-            return { ...s, messages: cleanedMessages, date: new Date() };
-          }
-          return s;
-        });
-        localStorage.setItem('chat-sessions', JSON.stringify(updated))
-        return updated
-      })
-    }
-  }, [messages, currentSessionId])
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -122,52 +123,71 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages])
 
-  const createNewSession = () => {
-    const newSession: ChatSession = {
-      id: Date.now().toString(),
-      title: 'گفتگوی جدید',
-      date: new Date(),
-      messages: [],
-    }
-    setSessions((prev) => [newSession, ...prev])
-    localStorage.setItem('chat-sessions', JSON.stringify([newSession, ...sessions]))
-    setCurrentSessionId(newSession.id)
-    setMessages([])
-    setHistoryOpen(false)
-  }
-
-  const loadSession = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId)
-    if (session) {
-      setCurrentSessionId(sessionId)
-      setMessages(session.messages)
-      setHistoryOpen(false)
-    }
-  }
-
-  const deleteSession = (sessionId: string) => {
-    setSessions((prev) => {
-      const updated = prev.filter((s) => s.id !== sessionId)
-      localStorage.setItem('chat-sessions', JSON.stringify(updated))
-      return updated
-    })
-    if (currentSessionId === sessionId) {
-      if (sessions.length > 1) {
-        const nextSession = sessions.find((s) => s.id !== sessionId)
-        if (nextSession) loadSession(nextSession.id)
-      } else {
-        createNewSession()
+  const createNewSession = async () => {
+    try {
+      const res = await fetch('/api/chat-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'گفتگوی جدید', messages: [] }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const newSession: ChatSession = {
+          id: data.id,
+          title: 'گفتگوی جدید',
+          date: new Date(data.createdAt),
+          messages: [],
+        }
+        setSessions((prev) => [newSession, ...prev])
+        setCurrentSessionId(newSession.id)
+        setMessages([])
+        setHistoryOpen(false)
       }
+    } catch (error) {
+      console.error('Failed to create session:', error)
     }
   }
 
-  const updateSessionTitle = (sessionId: string, newTitle: string) => {
-    setSessions((prev) => {
-      const updated = prev.map((s) =>
-        s.id === sessionId ? { ...s, title: newTitle } : s
-      )
-      localStorage.setItem('chat-sessions', JSON.stringify(updated))
-      return updated
+  const loadSession = async (sessionId: string) => {
+    try {
+      const res = await fetch(`/api/chat-sessions/${sessionId}`)
+      if (res.ok) {
+        const data = await res.json()
+        const msgs = JSON.parse(data.messages || '[]')
+        setCurrentSessionId(sessionId)
+        setMessages(msgs)
+        setHistoryOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to load session:', error)
+    }
+  }
+
+  const deleteSession = async (sessionId: string) => {
+    try {
+      await fetch(`/api/chat-sessions/${sessionId}`, { method: 'DELETE' })
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+      if (currentSessionId === sessionId) {
+        if (sessions.length > 1) {
+          const nextSession = sessions.find((s) => s.id !== sessionId)
+          if (nextSession) loadSession(nextSession.id)
+        } else {
+          createNewSession()
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+    }
+  }
+
+  const updateSessionTitle = async (sessionId: string, newTitle: string) => {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, title: newTitle } : s))
+    )
+    await fetch(`/api/chat-sessions/${sessionId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle }),
     })
   }
 
@@ -178,7 +198,7 @@ export default function ChatPage() {
     }
 
     if (!currentSessionId) {
-      createNewSession()
+      await createNewSession()
     }
 
     const newMessages: Message[] = [
@@ -189,10 +209,9 @@ export default function ChatPage() {
     setIsLoading(true)
     setStreamingId('assistant')
 
-    // Update title if first message
-    if (messages.length === 0) {
+    if (messages.length === 0 && currentSessionId) {
       updateSessionTitle(
-        currentSessionId || sessions[0]?.id,
+        currentSessionId,
         userMessage.substring(0, 30) + (userMessage.length > 30 ? '...' : '')
       )
     }
@@ -266,6 +285,18 @@ export default function ChatPage() {
             }
           }
         }
+      }
+
+      if (currentSessionId) {
+        const finalMessages = [
+          ...newMessages,
+          { role: 'assistant' as const, content: assistantMessage, reasoning: reasoningContent },
+        ]
+        await fetch(`/api/chat-sessions/${currentSessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: finalMessages }),
+        })
       }
     } catch (error: any) {
       console.error('[v0] Chat Error:', error)
@@ -346,7 +377,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white overflow-hidden font-sans" dir="rtl">
-      {/* History Sidebar */}
       <ChatHistory
         isOpen={historyOpen}
         sessions={sessions}
@@ -362,9 +392,7 @@ export default function ChatPage() {
         onSubmit={handleSurgeryFormSubmit} 
       />
 
-      {/* Main Chat */}
       <div className="flex flex-col flex-1 relative overflow-hidden">
-        {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md sticky top-0 z-20 border-b border-slate-200 dark:border-[#1a1a1a]">
           <div className="flex items-center gap-2">
             {!historyOpen && (
@@ -416,7 +444,6 @@ export default function ChatPage() {
           </div>
         </header>
 
-        {/* Messages Container */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-6 custom-scrollbar">
           <div className="max-w-3xl mx-auto w-full">
             {messages.length === 0 ? (
@@ -470,7 +497,6 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Input Section - Centered and Responsive */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-white dark:from-[#0a0a0a] via-white dark:via-[#0a0a0a] to-transparent z-10">
           <div className="max-w-3xl mx-auto w-full flex flex-col items-center">
             <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} />

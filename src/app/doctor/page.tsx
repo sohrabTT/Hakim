@@ -9,18 +9,14 @@ import {
   LogOut,
   Languages,
   MessageSquare,
-  Sparkles,
   ArrowRight,
-  Plus,
   ShieldCheck,
   Zap,
-  LayoutDashboard,
   Sun,
   Moon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useTheme } from 'next-themes'
 
@@ -33,19 +29,26 @@ export default function HakimDashboard() {
     setMounted(true)
   }, [])
   const router = useRouter()
-  const { toast } = useToast()
   const [patientCount, setPatientCount] = useState(0)
 
   useEffect(() => {
     if (!authLoading && (!user || profile?.role !== 'doctor')) {
       router.push('/')
     }
-
-    const savedPatients = localStorage.getItem('doctor-patients')
-    if (savedPatients) {
-      setPatientCount(JSON.parse(savedPatients).length)
-    }
+    loadPatientCount()
   }, [user, profile, authLoading, router])
+
+  const loadPatientCount = async () => {
+    try {
+      const res = await fetch('/api/patients')
+      if (res.ok) {
+        const data = await res.json()
+        setPatientCount(data.length)
+      }
+    } catch (error) {
+      console.error('Failed to load patient count:', error)
+    }
+  }
 
   if (authLoading || !user || profile?.role !== 'doctor') {
     return (
@@ -57,10 +60,8 @@ export default function HakimDashboard() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex">
-      {/* Vertical Sidebar (Right Side in RTL) */}
       <aside className="w-20 md:w-72 bg-slate-50/50 dark:bg-[#0c0c0c]/50 backdrop-blur-2xl border-l border-slate-200/60 dark:border-white/5 flex flex-col sticky top-0 h-screen z-50">
         <div className="p-4 md:p-6 flex flex-col h-full">
-          {/* Logo Section */}
           <div className="flex flex-col items-center md:items-start mb-10 px-2">
             <div className="relative">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-green-500/20 dark:shadow-none transition-transform hover:scale-105 duration-300">
@@ -70,7 +71,6 @@ export default function HakimDashboard() {
             </div>
           </div>
 
-          {/* Navigation Section */}
           <nav className="flex-1 space-y-2">
             <div className="px-3 mb-4 hidden md:block">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">منوی اصلی</p>
@@ -125,7 +125,6 @@ export default function HakimDashboard() {
             </Button>
           </nav>
 
-          {/* User & Logout Section */}
           <div className="mt-auto pt-6 border-t border-slate-200/60 dark:border-white/5 space-y-4">
             <div className="hidden md:flex items-center gap-3 px-2 py-3 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-all duration-300">
               <div className="h-10 w-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 font-bold text-lg">
@@ -151,10 +150,8 @@ export default function HakimDashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 overflow-auto">
         <div className="max-w-5xl mx-auto space-y-16">
-          {/* Hero Section */}
           <section className="relative py-12 overflow-hidden rounded-[2.5rem] bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in duration-700">
             <div className="absolute -top-12 -right-12 opacity-5 dark:opacity-10 text-green-600">
               <Activity className="h-64 w-64" />
@@ -180,9 +177,7 @@ export default function HakimDashboard() {
             </div>
           </section>
 
-          {/* Navigation Grid */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Chatbot Card */}
             <Card 
               className="group cursor-pointer rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-green-200 dark:hover:border-green-900/50 transition-all duration-500 overflow-hidden shadow-none hover:shadow-xl dark:hover:shadow-none"
               onClick={() => router.push('/doctor/chat')}
@@ -204,7 +199,6 @@ export default function HakimDashboard() {
               </CardContent>
             </Card>
 
-            {/* Translator Card */}
             <Card 
               className="group cursor-pointer rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-green-200 dark:hover:border-green-900/50 transition-all duration-500 overflow-hidden shadow-none hover:shadow-xl dark:hover:shadow-none"
               onClick={() => router.push('/doctor/translator')}
@@ -226,7 +220,6 @@ export default function HakimDashboard() {
               </CardContent>
             </Card>
 
-            {/* Patients Card */}
             <Card 
               className="group cursor-pointer rounded-[2rem] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:border-green-200 dark:hover:border-green-900/50 transition-all duration-500 overflow-hidden shadow-none hover:shadow-xl dark:hover:shadow-none"
               onClick={() => router.push('/doctor/patients')}
@@ -249,7 +242,6 @@ export default function HakimDashboard() {
             </Card>
           </section>
 
-          {/* Footer Info */}
           <footer className="pt-10 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 stroke-[1.5]" />

@@ -13,7 +13,6 @@ import {
   FileText,
   Clock,
   ChevronDown,
-  ChevronUp,
   Pill,
   AlertTriangle,
   History,
@@ -53,7 +52,7 @@ interface Patient {
   fullName: string
   nationalId: string
   birthDate: string
-  gender: 'male' | 'female' | 'other'
+  gender: string
   phoneNumber: string
   addressCity: string
   age?: number
@@ -86,16 +85,13 @@ interface Patient {
   createdAt: string
 }
 
-// Helper for age calculation
 const calculateAge = (birthDate?: string) => {
   if (!birthDate) return '-'
   try {
-    // Check if it's a Jalali year (e.g., 1370/01/01 or just 1370)
     if (birthDate.includes('/') || (parseInt(birthDate) && parseInt(birthDate) > 1300 && parseInt(birthDate) < 1500)) {
       const year = parseInt(birthDate.split('/')[0])
-      return 1405 - year // Current Jalali year based on 2026
+      return 1405 - year
     }
-    // Assume Gregorian
     const year = new Date(birthDate).getFullYear()
     return 2026 - year
   } catch (e) {
@@ -110,47 +106,96 @@ export default function PatientFilePage() {
   const { toast } = useToast()
   const [patient, setPatient] = useState<Patient | null>(null)
   const [loading, setLoading] = useState(true)
-  
-  // Diet state
   const [dietFormOpen, setDietFormOpen] = useState(false)
   const [isGeneratingDiet, setIsGeneratingDiet] = useState(false)
+  const [dietPlans, setDietPlans] = useState<any[]>([])
+  const [surgeryGuides, setSurgeryGuides] = useState<SurgeryGuide[]>([])
+
+  const loadPatient = async () => {
+    try {
+      const res = await fetch(`/api/patients/${params.id}`)
+      if (res.ok) {
+        const p = await res.json()
+        const mapped: Patient = {
+          id: p.id,
+          fullName: p.fullName,
+          nationalId: p.nationalId,
+          birthDate: p.birthDate || '',
+          gender: p.gender,
+          phoneNumber: p.phoneNumber || '',
+          addressCity: p.addressCity || '',
+          medicalHistory: {
+            underlyingDiseases: JSON.parse(p.medicalHistoryUnderlyingDiseases || '[]'),
+            previousSurgeries: p.medicalHistoryPreviousSurgeries || '',
+            hospitalizationHistory: p.medicalHistoryHospitalization || '',
+            infectiousDiseaseHistory: p.medicalHistoryInfectiousDisease || '',
+          },
+          allergies: {
+            drugAllergies: p.drugAllergies || '',
+            foodAllergies: p.foodAllergies || '',
+          },
+          medications: {
+            currentMedications: p.currentMedications || '',
+            supplements: p.supplements || '',
+          },
+          vitalSigns: {
+            bloodPressure: p.bloodPressure || '',
+            weight: p.weight || '',
+            height: p.height || '',
+            bmi: p.bmi || '',
+          },
+          lifestyle: {
+            smokingAlcohol: p.smokingAlcohol || '',
+            activityLevel: p.activityLevel || '',
+          },
+          createdAt: p.createdAt,
+        }
+        setPatient(mapped)
+        setDietPlans(p.dietPlans || [])
+        setSurgeryGuides((p.surgeryGuides || []).map((g: any) => ({
+          id: g.id,
+          date: g.createdAt,
+          surgeryType: g.surgeryType || '',
+          preOpChecklist: JSON.parse(g.preOp || '[]'),
+          postOpChecklist: JSON.parse(g.postOp || '[]'),
+        })))
+      } else {
+        router.push('/doctor/patients')
+      }
+    } catch (error) {
+      router.push('/doctor/patients')
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/')
       return
     }
-
-    const savedPatients = localStorage.getItem('doctor-patients')
-    if (savedPatients) {
-      const patients = JSON.parse(savedPatients)
-      const foundPatient = patients.find((p: any) => p.id === params.id)
-      if (foundPatient) {
-        setPatient(foundPatient)
-      } else {
-        router.push('/doctor/patients')
-      }
+    if (params.id) {
+      loadPatient()
     }
-    setLoading(false)
   }, [params.id, user, authLoading, router])
 
-  const savePatientData = (updatedPatient: Patient) => {
-    setPatient(updatedPatient)
-    const savedPatients = localStorage.getItem('doctor-patients')
-    if (savedPatients) {
-      const patients = JSON.parse(savedPatients)
-      const updatedPatients = patients.map((p: any) => p.id === patient?.id ? updatedPatient : p)
-      localStorage.setItem('doctor-patients', JSON.stringify(updatedPatients))
+  const handleSaveGuide = async (updatedGuide: SurgeryGuide) => {
+    try {
+      const res = await fetch('/api/surgery-guides', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: updatedGuide.id,
+          surgeryType: updatedGuide.surgeryType,
+          preOp: updatedGuide.preOpChecklist,
+          postOp: updatedGuide.postOpChecklist,
+        }),
+      })
+      if (res.ok) {
+        loadPatient()
+      }
+    } catch (error) {
+      console.error('Failed to save guide:', error)
     }
-  }
-
-  const handleSaveGuide = (updatedGuide: SurgeryGuide) => {
-    if (!patient) return
-    const existingIndex = (patient.surgeryGuides || []).findIndex(g => g.id === updatedGuide.id)
-    let updatedGuides = existingIndex > -1 
-      ? (patient.surgeryGuides || []).map((g, i) => i === existingIndex ? updatedGuide : g)
-      : [...(patient.surgeryGuides || []), updatedGuide]
-    savePatientData({ ...patient, surgeryGuides: updatedGuides })
   }
 
   const handleDietSubmit = async (data: any) => {
@@ -158,13 +203,18 @@ export default function PatientFilePage() {
     setIsGeneratingDiet(true)
     try {
       const generatedPlan = await generateDietPlanAI(data)
-      const updatedPatient = { 
-        ...patient, 
-        dietHistory: [...(patient.dietHistory || []), { date: new Date().toISOString(), plan: generatedPlan }] 
-      }
-      savePatientData(updatedPatient)
+      await fetch('/api/diet-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          title: `رژیم غذایی ${patient.fullName}`,
+          data: generatedPlan,
+        }),
+      })
       setDietFormOpen(false)
       toast({ title: 'رژیم غذایی تولید شد', description: 'برنامه غذایی جدید در تاریخچه ذخیره شد.' })
+      loadPatient()
     } catch (error) {
       toast({ variant: 'destructive', title: 'خطا', description: 'مشکلی در تولید رژیم پیش آمد.' })
     } finally {
@@ -184,7 +234,6 @@ export default function PatientFilePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] pb-20">
-      {/* Header */}
       <header className="bg-white dark:bg-[#111] border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -209,7 +258,6 @@ export default function PatientFilePage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* Patient Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="rounded-3xl border-none shadow-sm bg-white dark:bg-[#151515]">
             <CardContent className="p-6 flex items-center gap-4">
@@ -270,31 +318,18 @@ export default function PatientFilePage() {
           </Card>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="diet-history" className="w-full">
           <TabsList className="w-full justify-start bg-transparent border-b border-slate-200 dark:border-slate-800 rounded-none p-0 h-auto gap-8">
-            <TabsTrigger 
-              value="diet-history" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base"
-            >
+            <TabsTrigger value="diet-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base">
               تاریخچه رژیم‌ها
             </TabsTrigger>
-            <TabsTrigger 
-              value="medical-history" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base"
-            >
+            <TabsTrigger value="medical-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base">
               سوابق پزشکی
             </TabsTrigger>
-            <TabsTrigger 
-              value="meds" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base"
-            >
+            <TabsTrigger value="meds" className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base">
               داروها و حساسیت‌ها
             </TabsTrigger>
-            <TabsTrigger 
-              value="surgery-guide" 
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base"
-            >
+            <TabsTrigger value="surgery-guide" className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none py-4 px-2 text-base">
               Pre-op/Post-op
             </TabsTrigger>
           </TabsList>
@@ -314,9 +349,9 @@ export default function PatientFilePage() {
               </Button>
             </div>
 
-            {patient.dietHistory && patient.dietHistory.length > 0 ? (
-              patient.dietHistory.slice().reverse().map((history, index) => (
-                <Card key={index} className="rounded-3xl border-none shadow-sm bg-white dark:bg-[#151515] overflow-hidden">
+            {dietPlans.length > 0 ? (
+              dietPlans.map((plan: any, index: number) => (
+                <Card key={plan.id} className="rounded-3xl border-none shadow-sm bg-white dark:bg-[#151515] overflow-hidden">
                   <Collapsible>
                     <CollapsibleTrigger className="w-full">
                       <div className="p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
@@ -328,7 +363,7 @@ export default function PatientFilePage() {
                             <h3 className="font-bold text-lg">برنامه رژیم غذایی هوشمند</h3>
                             <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                               <Clock className="h-3 w-3" />
-                              {new Date(history.date).toLocaleDateString('fa-IR')} - ساعت {new Date(history.date).toLocaleTimeString('fa-IR')}
+                              {new Date(plan.createdAt).toLocaleDateString('fa-IR')} - ساعت {new Date(plan.createdAt).toLocaleTimeString('fa-IR')}
                             </div>
                           </div>
                         </div>
@@ -337,18 +372,25 @@ export default function PatientFilePage() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="p-6 pt-0 border-t border-slate-100 dark:border-slate-800">
-                        {history.plan.postOp && (
-                          <div className="mt-6">
-                            <Badge variant="outline" className="mb-4">رژیم بعد از عمل</Badge>
-                            <DietPlan data={history.plan.postOp} patientName={patient.fullName} type="postOp" />
-                          </div>
-                        )}
-                        {history.plan.preOp && (
-                          <div className="mt-8 pt-8 border-t border-dashed border-slate-200 dark:border-slate-800">
-                            <Badge variant="outline" className="mb-4">رژیم قبل از عمل</Badge>
-                            <DietPlan data={history.plan.preOp} patientName={patient.fullName} type="preOp" />
-                          </div>
-                        )}
+                        {(() => {
+                          const planData = typeof plan.data === 'string' ? JSON.parse(plan.data) : plan.data
+                          return (
+                            <>
+                              {planData.postOp && (
+                                <div className="mt-6">
+                                  <Badge variant="outline" className="mb-4">رژیم بعد از عمل</Badge>
+                                  <DietPlan data={planData.postOp} patientName={patient.fullName} type="postOp" />
+                                </div>
+                              )}
+                              {planData.preOp && (
+                                <div className="mt-8 pt-8 border-t border-dashed border-slate-200 dark:border-slate-800">
+                                  <Badge variant="outline" className="mb-4">رژیم قبل از عمل</Badge>
+                                  <DietPlan data={planData.preOp} patientName={patient.fullName} type="preOp" />
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
@@ -449,7 +491,7 @@ export default function PatientFilePage() {
           <TabsContent value="surgery-guide" className="mt-8">
             <SurgeryGuideSection 
               patient={patient} 
-              existingGuides={patient.surgeryGuides || []} 
+              existingGuides={surgeryGuides} 
               onSave={handleSaveGuide}
             />
           </TabsContent>

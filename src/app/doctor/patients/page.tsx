@@ -10,21 +10,10 @@ import {
   Phone,
   MapPin,
   User,
-  MoreVertical,
   Trash2,
-  Edit,
   Eye,
   ArrowLeft,
   Activity,
-  Calendar,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Upload,
-  X,
-  Scale,
-  Ruler,
-  Utensils,
   Sun,
   Moon
 } from 'lucide-react'
@@ -62,10 +51,10 @@ interface Patient {
   id: string
   fullName: string
   nationalId: string
-  birthDate: string
-  gender: 'male' | 'female' | 'other'
-  phoneNumber: string
-  addressCity: string
+  birthDate?: string
+  gender: string
+  phoneNumber?: string
+  addressCity?: string
   medicalHistory: {
     underlyingDiseases: string[]
     previousSurgeries: string
@@ -89,9 +78,6 @@ interface Patient {
   lifestyle: {
     smokingAlcohol: string
     activityLevel: string
-  }
-  womenOnly?: {
-    pregnantOrBreastfeeding: string
   }
   files: string[]
   dietHistory?: { date: string, plan: any }[]
@@ -121,15 +107,12 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false)
-  
-  // Diet Generation State
   const [dietFormOpen, setDietFormOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [dietResult, setDietResult] = useState<{ preOp: any, postOp: any } | null>(null)
   const [dietResultOpen, setDietResultOpen] = useState(false)
   const [isGeneratingDiet, setIsGeneratingDiet] = useState(false)
 
-  // Form State
   const [formData, setFormData] = useState<Partial<Patient>>({
     gender: 'male',
     medicalHistory: {
@@ -163,21 +146,59 @@ export default function PatientsPage() {
     if (!authLoading && (!user || profile?.role !== 'doctor')) {
       router.push('/')
     }
-
-    const savedPatients = localStorage.getItem('doctor-patients')
-    if (savedPatients) {
-      setPatients(JSON.parse(savedPatients))
-    }
+    loadPatients()
   }, [user, profile, authLoading, router])
 
-  const savePatients = (newPatients: Patient[]) => {
-    setPatients(newPatients)
-    localStorage.setItem('doctor-patients', JSON.stringify(newPatients))
+  const loadPatients = async () => {
+    try {
+      const res = await fetch('/api/patients')
+      if (res.ok) {
+        const data = await res.json()
+        const mapped = data.map((p: any) => ({
+          id: p.id,
+          fullName: p.fullName,
+          nationalId: p.nationalId,
+          birthDate: p.birthDate,
+          gender: p.gender,
+          phoneNumber: p.phoneNumber,
+          addressCity: p.addressCity,
+          medicalHistory: {
+            underlyingDiseases: JSON.parse(p.medicalHistoryUnderlyingDiseases || '[]'),
+            previousSurgeries: p.medicalHistoryPreviousSurgeries || '',
+            hospitalizationHistory: p.medicalHistoryHospitalization || '',
+            infectiousDiseaseHistory: p.medicalHistoryInfectiousDisease || '',
+          },
+          allergies: {
+            drugAllergies: p.drugAllergies || '',
+            foodAllergies: p.foodAllergies || '',
+          },
+          medications: {
+            currentMedications: p.currentMedications || '',
+            supplements: p.supplements || '',
+          },
+          vitalSigns: {
+            bloodPressure: p.bloodPressure || '',
+            weight: p.weight || '',
+            height: p.height || '',
+            bmi: p.bmi || '',
+          },
+          lifestyle: {
+            smokingAlcohol: p.smokingAlcohol || '',
+            activityLevel: p.activityLevel || '',
+          },
+          files: p.files ? JSON.parse(p.files) : [],
+          createdAt: p.createdAt,
+        }))
+        setPatients(mapped)
+      }
+    } catch (error) {
+      console.error('Failed to load patients:', error)
+    }
   }
 
   const calculateBMI = (weight: string, height: string) => {
     const w = parseFloat(weight)
-    const h = parseFloat(height) / 100 // cm to m
+    const h = parseFloat(height) / 100
     if (w > 0 && h > 0) {
       return (w / (h * h)).toFixed(1)
     }
@@ -197,7 +218,7 @@ export default function PatientsPage() {
     }
   }, [formData.vitalSigns?.weight, formData.vitalSigns?.height])
 
-  const handleAddPatient = () => {
+  const handleAddPatient = async () => {
     if (!formData.fullName || !formData.nationalId) {
       toast({
         variant: 'destructive',
@@ -207,58 +228,72 @@ export default function PatientsPage() {
       return
     }
 
-    const newPatient: Patient = {
-      ...(formData as Patient),
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      dietHistory: []
+    try {
+      const res = await fetch('/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (res.ok) {
+        toast({
+          title: 'بیمار اضافه شد',
+          description: `پرونده بیمار ${formData.fullName} با موفقیت ایجاد شد.`,
+        })
+        setIsAddPatientOpen(false)
+        setFormData({
+          gender: 'male',
+          medicalHistory: {
+            underlyingDiseases: [],
+            previousSurgeries: '',
+            hospitalizationHistory: '',
+            infectiousDiseaseHistory: '',
+          },
+          allergies: {
+            drugAllergies: '',
+            foodAllergies: '',
+          },
+          medications: {
+            currentMedications: '',
+            supplements: '',
+          },
+          vitalSigns: {
+            bloodPressure: '',
+            weight: '',
+            height: '',
+            bmi: '',
+          },
+          lifestyle: {
+            smokingAlcohol: '',
+            activityLevel: '',
+          },
+          files: []
+        })
+        loadPatients()
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'خطا',
+        description: 'مشکلی در ثبت بیمار پیش آمد.',
+      })
     }
-    
-    const updatedPatients = [newPatient, ...patients]
-    savePatients(updatedPatients)
-    setIsAddPatientOpen(false)
-    setFormData({
-      gender: 'male',
-      medicalHistory: {
-        underlyingDiseases: [],
-        previousSurgeries: '',
-        hospitalizationHistory: '',
-        infectiousDiseaseHistory: '',
-      },
-      allergies: {
-        drugAllergies: '',
-        foodAllergies: '',
-      },
-      medications: {
-        currentMedications: '',
-        supplements: '',
-      },
-      vitalSigns: {
-        bloodPressure: '',
-        weight: '',
-        height: '',
-        bmi: '',
-      },
-      lifestyle: {
-        smokingAlcohol: '',
-        activityLevel: '',
-      },
-      files: []
-    })
-    
-    toast({
-      title: 'بیمار اضافه شد',
-      description: `پرونده بیمار ${newPatient.fullName} با موفقیت ایجاد شد.`,
-    })
   }
 
-  const handleDeletePatient = (id: string) => {
-    const updatedPatients = patients.filter(p => p.id !== id)
-    savePatients(updatedPatients)
-    toast({
-      title: 'بیمار حذف شد',
-      description: 'پرونده بیمار با موفقیت حذف شد.',
-    })
+  const handleDeletePatient = async (id: string) => {
+    try {
+      await fetch(`/api/patients/${id}`, { method: 'DELETE' })
+      toast({
+        title: 'بیمار حذف شد',
+        description: 'پرونده بیمار با موفقیت حذف شد.',
+      })
+      loadPatients()
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'خطا',
+        description: 'مشکلی در حذف بیمار پیش آمد.',
+      })
+    }
   }
 
   const handleOpenDietForm = (patient: Patient) => {
@@ -270,22 +305,24 @@ export default function PatientsPage() {
     setIsGeneratingDiet(true)
     toast({
       title: 'شروع تحلیل هوشمند',
-      description: 'هوش مصنوعی در حال تحلیل اطلاعات و تولید برنامه غذایی است. لطفاً شکیبا باشید...',
+      description: 'هوش مصنوعی در حال تحلیل اطلاعات و تولید برنامه غذایی است...',
     })
     try {
       const generatedPlan = await generateDietPlanAI(data)
       setDietResult(generatedPlan)
       setDietFormOpen(false)
       setDietResultOpen(true)
-      
-      // Save to patient history
+
       if (selectedPatient) {
-        const updatedPatient = { 
-          ...selectedPatient, 
-          dietHistory: [...(selectedPatient.dietHistory || []), { date: new Date().toISOString(), plan: generatedPlan }] 
-        }
-        const updatedPatients = patients.map(p => p.id === selectedPatient.id ? updatedPatient : p)
-        savePatients(updatedPatients)
+        await fetch('/api/diet-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            title: `رژیم غذایی ${selectedPatient.fullName}`,
+            data: generatedPlan,
+          }),
+        })
         toast({
           title: 'رژیم غذایی تولید شد',
           description: 'برنامه غذایی با موفقیت ایجاد و در سوابق بیمار ذخیره شد.',
@@ -317,7 +354,6 @@ export default function PatientsPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col items-center">
-      {/* Header */}
       <header className="w-full bg-white/80 dark:bg-[#0c0c0c]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/5 p-4 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -362,7 +398,6 @@ export default function PatientsPage() {
       </header>
 
       <main className="w-full max-w-6xl p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {/* Actions Bar */}
         <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 p-6 rounded-3xl">
           <div className="relative flex-1 w-full group">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-green-500 transition-colors" />
@@ -385,7 +420,7 @@ export default function PatientsPage() {
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold">ایجاد پرونده الکترونیک بیمار</DialogTitle>
                 <DialogDescription>
-                  اطلاعات بیمار را با دقت وارد کنید. تمامی موارد در پرونده الکترونیک ذخیره می‌شود.
+                  اطلاعات بیمار را با دقت وارد کنید.
                 </DialogDescription>
               </DialogHeader>
               
@@ -437,7 +472,6 @@ export default function PatientsPage() {
                     </div>
                   </TabsContent>
                   
-                  {/* Additional Tabs content similar to previous but styled with rounded-xl and h-12 */}
                   <TabsContent value="medical" className="space-y-6">
                     <div className="space-y-4">
                       <Label className="text-lg font-bold">بیماری‌های زمینه‌ای</Label>
@@ -465,21 +499,21 @@ export default function PatientsPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
-                      <Textarea id="surgeries" placeholder="سابقه جراحی‌های قبلی بیمار را در اینجا بنویسید..." value={formData.medicalHistory?.previousSurgeries || ''} onChange={(e) => setFormData({...formData, medicalHistory: {...formData.medicalHistory!, previousSurgeries: e.target.value}})} className="rounded-2xl min-h-[100px] p-4" />
-                      <Textarea id="hospitalization" placeholder="سابقه بستری بیمار..." value={formData.medicalHistory?.hospitalizationHistory || ''} onChange={(e) => setFormData({...formData, medicalHistory: {...formData.medicalHistory!, hospitalizationHistory: e.target.value}})} className="rounded-2xl min-h-[100px] p-4" />
+                      <Textarea id="surgeries" placeholder="سابقه جراحی‌های قبلی..." value={formData.medicalHistory?.previousSurgeries || ''} onChange={(e) => setFormData({...formData, medicalHistory: {...formData.medicalHistory!, previousSurgeries: e.target.value}})} className="rounded-2xl min-h-[100px] p-4" />
+                      <Textarea id="hospitalization" placeholder="سابقه بستری..." value={formData.medicalHistory?.hospitalizationHistory || ''} onChange={(e) => setFormData({...formData, medicalHistory: {...formData.medicalHistory!, hospitalizationHistory: e.target.value}})} className="rounded-2xl min-h-[100px] p-4" />
                     </div>
                   </TabsContent>
 
                   <TabsContent value="allergies" className="space-y-4">
                     <Label className="text-lg font-bold">حساسیت‌ها</Label>
-                    <Textarea placeholder="حساسیت‌های دارویی بیمار..." value={formData.allergies?.drugAllergies || ''} onChange={(e) => setFormData({...formData, allergies: {...formData.allergies!, drugAllergies: e.target.value}})} className="rounded-2xl min-h-[120px] p-4" />
-                    <Textarea placeholder="حساسیت‌های غذایی بیمار..." value={formData.allergies?.foodAllergies || ''} onChange={(e) => setFormData({...formData, allergies: {...formData.allergies!, foodAllergies: e.target.value}})} className="rounded-2xl min-h-[120px] p-4" />
+                    <Textarea placeholder="حساسیت‌های دارویی..." value={formData.allergies?.drugAllergies || ''} onChange={(e) => setFormData({...formData, allergies: {...formData.allergies!, drugAllergies: e.target.value}})} className="rounded-2xl min-h-[120px] p-4" />
+                    <Textarea placeholder="حساسیت‌های غذایی..." value={formData.allergies?.foodAllergies || ''} onChange={(e) => setFormData({...formData, allergies: {...formData.allergies!, foodAllergies: e.target.value}})} className="rounded-2xl min-h-[120px] p-4" />
                   </TabsContent>
 
                   <TabsContent value="meds" className="space-y-4">
                     <Label className="text-lg font-bold">داروها</Label>
-                    <Textarea placeholder="لیست داروهای مصرفی فعلی بیمار..." value={formData.medications?.currentMedications || ''} onChange={(e) => setFormData({...formData, medications: {...formData.medications!, currentMedications: e.target.value}})} className="rounded-2xl min-h-[120px] p-4" />
-                    <Input placeholder="مکمل‌های ویتامینی و غذایی..." value={formData.medications?.supplements || ''} onChange={(e) => setFormData({...formData, medications: {...formData.medications!, supplements: e.target.value}})} className="h-14 rounded-xl px-4" />
+                    <Textarea placeholder="لیست داروهای مصرفی فعلی..." value={formData.medications?.currentMedications || ''} onChange={(e) => setFormData({...formData, medications: {...formData.medications!, currentMedications: e.target.value}})} className="rounded-2xl min-h-[120px] p-4" />
+                    <Input placeholder="مکمل‌های ویتامینی..." value={formData.medications?.supplements || ''} onChange={(e) => setFormData({...formData, medications: {...formData.medications!, supplements: e.target.value}})} className="h-14 rounded-xl px-4" />
                   </TabsContent>
 
                   <TabsContent value="vitals" className="space-y-4">
@@ -531,7 +565,6 @@ export default function PatientsPage() {
           </Dialog>
         </div>
 
-        {/* Patients Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredPatients.length > 0 ? (
             filteredPatients.map((patient) => (
@@ -580,8 +613,7 @@ export default function PatientsPage() {
                       className="w-full gap-2 h-14 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-lg shadow-blue-500/20 transition-all"
                       onClick={() => handleOpenDietForm(patient)}
                     >
-                      <Utensils className="h-5 w-5" />
-                      ساخت رژیم غذایی هوشمند
+                      <span>ساخت رژیم غذایی هوشمند</span>
                     </Button>
                     
                     <div className="flex gap-3">
@@ -664,10 +696,6 @@ export default function PatientsPage() {
 
           <DialogFooter>
             <Button onClick={() => setDietResultOpen(false)} className="rounded-xl h-12 px-8">بستن</Button>
-            <Button variant="outline" onClick={() => window.print()} className="rounded-xl h-12 px-8 gap-2">
-              <Upload className="h-4 w-4" />
-              دانلود PDF
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

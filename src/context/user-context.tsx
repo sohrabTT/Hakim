@@ -16,9 +16,9 @@ export interface UserProfile {
   location: string
   language: Language
   role: 'doctor' | 'patient' | 'caregiver'
-  specialization?: string // حوزه فعالیت
-  level?: 'specialist' | 'subspecialist' | 'general' // متخصص، فوق تخصص، عمومی
-  department?: string // بخش
+  specialization?: string
+  level?: 'specialist' | 'subspecialist' | 'general'
+  department?: string
   createdAt: Date
 }
 
@@ -29,9 +29,9 @@ interface UserContextType {
   language: Language
   isLoading: boolean
   authLoading: boolean
-  setProfile: (profile: UserProfile) => void
+  setProfile: (profile: UserProfile) => Promise<void>
   setLanguage: (lang: Language) => void
-  updateProfile: (updates: Partial<UserProfile>) => void
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   refreshUser: () => Promise<void>
   logout: () => Promise<void>
 }
@@ -52,6 +52,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
       if (data.user) {
         setUserState(data.user)
+        const profileRes = await fetch('/api/profile')
+        if (profileRes.ok) {
+          const profileData = await profileRes.json()
+          if (profileData && profileData.firstName) {
+            setProfileState(profileData as UserProfile)
+          }
+        }
       } else {
         setUserState(null)
       }
@@ -63,36 +70,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Load from localStorage on mount and fetch user
   useEffect(() => {
     const init = async () => {
-      const savedProfile = localStorage.getItem('user-profile')
       const savedLanguage = (localStorage.getItem('language') as Language) || 'en'
 
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile)
-        setProfileState(parsed)
+      if (savedLanguage) {
+        setLanguageState(savedLanguage)
       }
-
-      setLanguageState(savedLanguage)
-      
       await refreshUser()
       setIsLoading(false)
     }
-    
     init()
   }, [])
 
-  // Save profile to localStorage
-  const setProfile = (newProfile: UserProfile) => {
+  const setProfile = async (newProfile: UserProfile) => {
     setProfileState(newProfile)
-    localStorage.setItem('user-profile', JSON.stringify(newProfile))
-    
-    // Also update profile for the current authenticated user if needed
-    // In a real app, you would send this to the server
+    try {
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProfile),
+      })
+    } catch (error) {
+      console.error('Failed to save profile:', error)
+    }
   }
 
-  // Update language
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem('language', lang)
@@ -100,22 +103,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : lang === 'fa' ? 'rtl' : 'ltr'
   }
 
-  // Update profile
-  const updateProfile = (updates: Partial<UserProfile>) => {
+  const updateProfile = async (updates: Partial<UserProfile>) => {
     if (profile) {
       const updated = { ...profile, ...updates }
-      setProfile(updated)
+      await setProfile(updated)
     }
   }
 
-  // Logout
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
       setUserState(null)
       setProfileState(null)
-      localStorage.removeItem('user-profile')
-      localStorage.removeItem('chat-sessions')
     } catch (error) {
       console.error('Logout failed:', error)
     }
