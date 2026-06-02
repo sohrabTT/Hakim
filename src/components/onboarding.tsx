@@ -179,37 +179,50 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center p-4">
-      {/* Main Container */}
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-white dark:bg-[#030712] transition-colors duration-500 font-sans" dir="rtl">
+      {/* Background Animation Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 dark:bg-blue-500/5 blur-[120px] animate-pulse [animation-delay:2s]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[480px] px-6 py-12">
         {/* Header */}
-        <div className="text-center mb-12 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full shadow-lg mb-4">
-            <Heart className="w-8 h-8 text-white" />
+        <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="relative inline-block group mb-6">
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-20 dark:opacity-25 group-hover:opacity-40 transition duration-1000" />
+            <div className="relative flex items-center justify-center w-16 h-16 bg-white dark:bg-[#0f172a] rounded-2xl border border-black/5 dark:border-white/5 shadow-xl">
+              <Heart className="w-8 h-8 text-emerald-500 dark:text-emerald-400 fill-emerald-500/10 dark:fill-emerald-400/10" />
+            </div>
           </div>
+          
           {currentStep === 0 ? (
             <>
-              <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-3">
                 {renderHakimText()}
               </h1>
-              <p className="text-slate-600 dark:text-gray-400 text-lg">
+              <p className="text-slate-500 dark:text-gray-400 text-lg font-medium max-w-[320px] mx-auto">
                 {t(language, 'onboarding.subtitle')}
               </p>
             </>
           ) : (
             <>
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-3">
                 {t(language, currentStepConfig.title)}
               </h2>
-              <p className="text-slate-600 dark:text-gray-400">
+              <p className="text-slate-500 dark:text-gray-400 font-medium">
                 {t(language, currentStepConfig.subtitle)}
               </p>
-              <div className="mt-4 flex gap-2 justify-center">
+              
+              {/* Modern Progress Bar */}
+              <div className="mt-8 flex gap-2 justify-center px-12">
                 {steps.map((_, index) => (
                   <div
                     key={index}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      index <= currentStep ? 'bg-green-500 w-8' : 'bg-green-200 w-2'
+                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                      index <= currentStep 
+                        ? 'bg-emerald-500 w-full shadow-[0_0_12px_rgba(16,185,129,0.4)]' 
+                        : 'bg-slate-200 dark:bg-gray-800 w-4'
                     }`}
                   />
                 ))}
@@ -218,234 +231,169 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           )}
         </div>
 
-        {/* Content */}
-        <div className="animate-slide-up">
-          {currentStepConfig.key === 'language' ? (
-            /* Language Selection */
-            <>
-              <div className="grid grid-cols-3 gap-3">
-                {(['en', 'fa', 'ar'] as Language[]).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => handleLanguageSelect(lang)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-300 hover:scale-105 active:scale-95 font-semibold text-sm ${
-                      language === lang 
-                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' 
-                        : 'border-slate-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-500 dark:text-gray-400'
-                    }`}
-                  >
-                    {lang === 'en' && 'English'}
-                    {lang === 'fa' && 'فارسی'}
-                    {lang === 'ar' && 'العربية'}
-                  </button>
-                ))}
-              </div>
-              {errors.language && (
-                <p className="text-red-500 text-sm mt-4 text-center">{errors.language}</p>
-              )}
-            </>
-          ) : currentStepConfig.key === 'role' ? (
-            /* Role Selection */
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <button
-                  onClick={() => handleRoleSelect('patient')}
-                  className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
-                    data.role === 'patient'
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                      : 'border-slate-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-600 dark:text-gray-300'
-                  }`}
-                >
-                  <div className={`p-3 rounded-xl ${data.role === 'patient' ? 'bg-green-500 text-white' : 'bg-slate-100 dark:bg-[#1a1a1a] text-slate-400'}`}>
-                    <User className="w-6 h-6" />
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{t(language, 'onboarding.patient')}</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handleRoleSelect('doctor')}
-                  className={`flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
-                    data.role === 'doctor'
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                      : 'border-slate-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-600 dark:text-gray-300'
-                  }`}
-                >
-                  <div className={`p-3 rounded-xl ${data.role === 'doctor' ? 'bg-green-500 text-white' : 'bg-slate-100 dark:bg-[#1a1a1a] text-slate-400'}`}>
-                    <Stethoscope className="w-6 h-6" />
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">{t(language, 'onboarding.doctor')}</p>
-                  </div>
-                </button>
-
-                <div
-                  className="flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 dark:border-[#151515] bg-slate-50/50 dark:bg-[#080808] text-slate-400 dark:text-gray-600 cursor-not-allowed relative overflow-hidden opacity-60"
-                >
-                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#1a1a1a]">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div className="text-right flex-1">
-                    <p className="font-bold text-lg">{t(language, 'onboarding.caregiver')}</p>
-                  </div>
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded text-[10px] font-bold">
-                    {t(language, 'onboarding.comingSoon')}
-                  </div>
+        {/* Content Card */}
+        <div className="relative group animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-150">
+          <div className="absolute -inset-[1px] bg-gradient-to-b from-black/5 dark:from-white/20 to-transparent rounded-[2.5rem] opacity-20 pointer-events-none" />
+          <div className="relative bg-white/70 dark:bg-[#0f172a]/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
+            
+            <div className="min-h-[220px] flex flex-col justify-center">
+              {currentStepConfig.key === 'language' ? (
+                /* Language Selection */
+                <div className="grid grid-cols-1 gap-3">
+                  {(['en', 'fa', 'ar'] as Language[]).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => handleLanguageSelect(lang)}
+                      className={`group relative p-5 rounded-2xl border-2 transition-all duration-300 text-right overflow-hidden ${
+                        language === lang 
+                          ? 'border-emerald-500 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400' 
+                          : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-slate-500 dark:text-gray-400 hover:border-emerald-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-lg">
+                          {lang === 'en' && 'English'}
+                          {lang === 'fa' && 'فارسی'}
+                          {lang === 'ar' && 'العربية'}
+                        </span>
+                        {language === lang && <ChevronRight className="w-5 h-5 animate-in zoom-in duration-300" />}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </div>
-              {errors.role && (
-                <p className="text-red-500 text-sm mt-4 text-center">{errors.role}</p>
+              ) : currentStepConfig.key === 'role' ? (
+                /* Role Selection */
+                <div className="grid grid-cols-1 gap-4">
+                  {[
+                    { id: 'patient', icon: User, label: 'onboarding.patient', disabled: false },
+                    { id: 'doctor', icon: Stethoscope, label: 'onboarding.doctor', disabled: false },
+                    { id: 'caregiver', icon: Users, label: 'onboarding.caregiver', disabled: true }
+                  ].map((roleItem) => (
+                    <button
+                      key={roleItem.id}
+                      disabled={roleItem.disabled}
+                      onClick={() => !roleItem.disabled && handleRoleSelect(roleItem.id as any)}
+                      className={`relative flex items-center gap-5 p-5 rounded-2xl border-2 transition-all duration-300 ${
+                        roleItem.disabled 
+                          ? 'opacity-40 cursor-not-allowed border-transparent grayscale'
+                          : data.role === roleItem.id
+                            ? 'border-emerald-500 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 scale-[1.02]'
+                            : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:border-emerald-500/30'
+                      }`}
+                    >
+                      <div className={`p-3 rounded-xl transition-colors ${
+                        data.role === roleItem.id 
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
+                          : 'bg-white dark:bg-[#030712] text-slate-400 border border-black/5 dark:border-white/5'
+                      }`}>
+                        <roleItem.icon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="font-bold text-lg leading-none">{t(language, roleItem.label)}</p>
+                        {roleItem.disabled && (
+                          <span className="text-[10px] font-black uppercase tracking-tighter opacity-60 mt-1 block">
+                            {t(language, 'onboarding.comingSoon')}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                /* Inputs Step */
+                <div className="space-y-4">
+                  {currentStepConfig.key === 'name' ? (
+                    <>
+                      <div className="relative group/input">
+                        <Input
+                          type="text"
+                          placeholder={t(language, 'onboarding.firstName')}
+                          value={data.firstName}
+                          onChange={(e) => handleInputChange('firstName', e.target.value)}
+                          className="w-full bg-black/5 dark:bg-[#030712]/50 border-black/5 dark:border-white/5 h-14 px-6 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600 rounded-2xl focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all duration-300"
+                        />
+                        {errors.firstName && <p className="text-red-500 text-[10px] font-bold mt-1 pr-2">{errors.firstName}</p>}
+                      </div>
+                      <div className="relative group/input">
+                        <Input
+                          type="text"
+                          placeholder={t(language, 'onboarding.lastName')}
+                          value={data.lastName}
+                          onChange={(e) => handleInputChange('lastName', e.target.value)}
+                          className="w-full bg-black/5 dark:bg-[#030712]/50 border-black/5 dark:border-white/5 h-14 px-6 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600 rounded-2xl focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all duration-300"
+                        />
+                        {errors.lastName && <p className="text-red-500 text-[10px] font-bold mt-1 pr-2">{errors.lastName}</p>}
+                      </div>
+                    </>
+                  ) : currentStepConfig.key === 'level' ? (
+                    <div className="grid grid-cols-1 gap-3">
+                      {(['general', 'specialist', 'subspecialist'] as const).map((lvl) => (
+                        <button
+                          key={lvl}
+                          onClick={() => setData(prev => ({ ...prev, level: lvl }))}
+                          className={`p-5 rounded-2xl border-2 transition-all duration-300 text-right font-bold text-lg ${
+                            data.level === lvl 
+                              ? 'border-emerald-500 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400' 
+                              : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-slate-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {lvl === 'general' && (language === 'fa' ? 'پزشک عمومی' : 'General Practitioner')}
+                          {lvl === 'specialist' && (language === 'fa' ? 'متخصص' : 'Specialist')}
+                          {lvl === 'subspecialist' && (language === 'fa' ? 'فوق تخصص' : 'Subspecialist')}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="relative group/input">
+                      <Input
+                        type={currentStepConfig.key === 'age' ? 'number' : 'text'}
+                        placeholder={t(language, `onboarding.${currentStepConfig.key}`)}
+                        value={(data as any)[currentStepConfig.key]}
+                        onChange={(e) => handleInputChange(currentStepConfig.key, e.target.value)}
+                        className="w-full bg-black/5 dark:bg-[#030712]/50 border-black/5 dark:border-white/5 h-14 px-6 text-lg text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600 rounded-2xl focus:border-emerald-500/50 focus:ring-emerald-500/20 transition-all duration-300"
+                      />
+                      {errors[currentStepConfig.key] && (
+                        <p className="text-red-500 text-[10px] font-bold mt-1 pr-2">{errors[currentStepConfig.key]}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          ) : currentStepConfig.key === 'name' ? (
-            /* Name Input */
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder={t(language, 'onboarding.firstName')}
-                value={data.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-              />
-              {errors.firstName && (
-                <p className="text-red-500 text-sm">{errors.firstName}</p>
-              )}
-              <input
-                type="text"
-                placeholder={t(language, 'onboarding.lastName')}
-                value={data.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-              />
-              {errors.lastName && (
-                <p className="text-red-500 text-sm">{errors.lastName}</p>
-              )}
-            </div>
-          ) : currentStepConfig.key === 'phone' ? (
-            /* Phone Input */
-            <div>
-              <input
-                type="tel"
-                placeholder={t(language, 'onboarding.phone')}
-                value={data.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-sm mt-2">{errors.phone}</p>
-              )}
-            </div>
-          ) : currentStepConfig.key === 'specialization' ? (
-            /* Specialization Input (Doctor only) */
-            <div>
-              <input
-                type="text"
-                placeholder={t(language, 'onboarding.doctorSpecializationTitle')}
-                value={data.specialization}
-                onChange={(e) => handleInputChange('specialization', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-              />
-              {errors.specialization && (
-                <p className="text-red-500 text-sm mt-2">{errors.specialization}</p>
-              )}
-            </div>
-          ) : currentStepConfig.key === 'level' ? (
-            /* Level Selection (Doctor only) */
-            <div className="grid grid-cols-1 gap-3">
-              {(['general', 'specialist', 'subspecialist'] as const).map((lvl) => (
+
+            {/* Navigation Buttons */}
+            <div className="mt-10 space-y-4">
+              <Button
+                onClick={currentStep === 0 ? () => setCurrentStep(1) : handleNext}
+                className="relative overflow-hidden w-full h-14 bg-emerald-500 hover:bg-emerald-600 dark:hover:bg-emerald-400 text-white dark:text-[#030712] text-lg font-bold rounded-2xl shadow-[0_20px_40px_-12px_rgba(16,185,129,0.3)] transition-all duration-500 group"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {currentStep === 0 ? t(language, 'onboarding.getStarted') : (
+                    currentStep === steps.length - 1 ? t(language, 'onboarding.finish') : t(language, 'onboarding.next')
+                  )}
+                  {language === 'fa' || language === 'ar' ? <ChevronLeft className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> : <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                </span>
+              </Button>
+
+              {currentStep > 0 && (
                 <button
-                  key={lvl}
-                  onClick={() => setData(prev => ({ ...prev, level: lvl }))}
-                  className={`p-4 rounded-xl border-2 transition-all duration-300 text-right font-semibold ${
-                    data.level === lvl 
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' 
-                      : 'border-slate-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-500 dark:text-gray-400'
-                  }`}
+                  onClick={handlePrevious}
+                  className="w-full py-2 text-sm font-bold text-slate-400 dark:text-gray-500 hover:text-emerald-500 transition-colors flex items-center justify-center gap-1"
                 >
-                  {lvl === 'general' && (language === 'fa' ? 'پزشک عمومی' : 'General Practitioner')}
-                  {lvl === 'specialist' && (language === 'fa' ? 'متخصص' : 'Specialist')}
-                  {lvl === 'subspecialist' && (language === 'fa' ? 'فوق تخصص' : 'Subspecialist')}
+                  {language === 'fa' || language === 'ar' ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                  {t(language, 'onboarding.previous')}
                 </button>
-              ))}
-            </div>
-          ) : currentStepConfig.key === 'department' ? (
-            /* Department Input (Doctor only) */
-            <div>
-              <input
-                type="text"
-                placeholder={t(language, 'onboarding.doctorDepartmentTitle')}
-                value={data.department}
-                onChange={(e) => handleInputChange('department', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-              />
-              {errors.department && (
-                <p className="text-red-500 text-sm mt-2">{errors.department}</p>
               )}
             </div>
-          ) : currentStepConfig.key === 'age' ? (
-            /* Age Input */
-            <div>
-              <input
-                type="number"
-                placeholder={t(language, 'onboarding.age')}
-                value={data.age}
-                onChange={(e) => handleInputChange('age', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-                min="1"
-                max="150"
-              />
-              {errors.age && (
-                <p className="text-red-500 text-sm mt-2">{errors.age}</p>
-              )}
-            </div>
-          ) : (
-            /* Location Input */
-            <div>
-              <input
-                type="text"
-                placeholder={t(language, 'onboarding.location')}
-                value={data.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] bg-white dark:bg-[#0f0f0f] text-slate-900 dark:text-white focus:border-green-500 focus:outline-none transition-colors placeholder-slate-400 dark:placeholder-gray-600"
-              />
-              {errors.location && (
-                <p className="text-red-500 text-sm mt-2">{errors.location}</p>
-              )}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Navigation Buttons */}
-        {currentStep > 0 && (
-          <div className="mt-8 flex gap-3 animate-slide-up">
-            <button
-              onClick={handlePrevious}
-              className="flex-1 px-4 py-3 rounded-xl border border-green-200 dark:border-[#1a1a1a] text-green-600 dark:text-green-400 font-semibold hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              {t(language, 'onboarding.previous')}
-            </button>
-            <button
-              onClick={handleNext}
-              className="flex-1 px-4 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 active:scale-95"
-            >
-              {currentStep === steps.length - 1
-                ? t(language, 'onboarding.finish')
-                : t(language, 'onboarding.next')}
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
-        {currentStep === 0 && (
-          <button
-            onClick={() => setCurrentStep(1)}
-            className="w-full mt-8 px-4 py-3 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-colors animate-slide-up active:scale-95"
-          >
-            {t(language, 'onboarding.getStarted')}
-          </button>
-        )}
+        {/* Brand Link */}
+        <div className="mt-10 text-center animate-in fade-in duration-1000 delay-500 opacity-40">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-gray-600">
+            Powered by Hakim Health AI Systems
+          </p>
+        </div>
       </div>
     </div>
   )
