@@ -3,6 +3,8 @@
 import React, { useState } from 'react'
 import { useUser } from '@/context/user-context'
 import { t, type Language } from '@/lib/i18n'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Heart, ChevronRight, ChevronLeft, User, Stethoscope, Users } from 'lucide-react'
 
 interface OnboardingData {
