@@ -132,7 +132,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const isMedicalComplete = !!(profile && profile.gender && profile.weight && profile.height && profile.bloodType)
+  const hasBloodType = !!(profile?.bloodType)
+  const isMedicalComplete = !!(profile && profile.gender && profile.weight && profile.height && hasBloodType)
 
   return (
     <UserContext.Provider

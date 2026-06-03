@@ -9,7 +9,7 @@ import { Onboarding } from '@/components/onboarding'
 import { PatientMedicalForm } from '@/components/patient-medical-form'
 import { SurgeryDietForm } from '@/components/surgery-diet-form'
 import { useToast } from '@/hooks/use-toast'
-import { Share2, Menu, Sun, Moon, LogOut, Heart } from 'lucide-react'
+import { Share2, Menu, Sun, Moon, LogOut, Heart, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { t } from '@/lib/i18n'
@@ -433,6 +433,15 @@ export default function ChatPage() {
           </h1>
 
           <div className="flex items-center gap-2">
+            {user && profile?.role === 'patient' && (
+              <button
+                onClick={() => router.push('/profile')}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-[#1a1a1a] rounded-lg transition-colors text-gray-400 hover:text-emerald-500"
+                title="پروفایل"
+              >
+                <User className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 hover:bg-slate-100 dark:hover:bg-[#1a1a1a] rounded-lg transition-colors text-gray-400 hover:text-green-500"

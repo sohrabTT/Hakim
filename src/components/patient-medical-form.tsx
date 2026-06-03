@@ -45,7 +45,7 @@ export function PatientMedicalForm({ onComplete }: PatientMedicalFormProps) {
       if (!formData.gender) newErrors.gender = 'جنسیت را انتخاب کنید'
       if (!formData.weight) newErrors.weight = 'وزن الزامی است'
       if (!formData.height) newErrors.height = 'قد الزامی است'
-      if (!formData.bloodType) newErrors.bloodType = 'گروه خونی را انتخاب کنید'
+      if (!formData.bloodType) newErrors.bloodType = 'وضعیت گروه خونی را مشخص کنید'
     }
 
     setErrors(newErrors)
@@ -194,6 +194,7 @@ export function PatientMedicalForm({ onComplete }: PatientMedicalFormProps) {
                       className="w-full bg-black/5 dark:bg-[#030712]/50 border border-black/5 dark:border-white/5 h-12 pr-11 rounded-2xl text-slate-900 dark:text-white appearance-none cursor-pointer text-right px-4"
                     >
                       <option value="" disabled>گروه خونی</option>
+                      <option value="unknown">نمی‌دانم</option>
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
                       <option value="B+">B+</option>

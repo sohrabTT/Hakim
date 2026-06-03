@@ -5,7 +5,7 @@ import { useUser } from '@/context/user-context'
 import { t, type Language } from '@/lib/i18n'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Heart, ChevronRight, ChevronLeft, User, Stethoscope, Users } from 'lucide-react'
+import { ChevronRight, ChevronLeft, User, Stethoscope, Users } from 'lucide-react'
 
 interface OnboardingData {
   firstName: string
@@ -203,12 +203,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       <div className="relative z-10 w-full max-w-[480px] px-6 py-12">
         {/* Header */}
         <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="relative inline-block group mb-6">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-20 dark:opacity-25 group-hover:opacity-40 transition duration-1000" />
-            <div className="relative flex items-center justify-center w-16 h-16 bg-white dark:bg-[#0f172a] rounded-2xl border border-black/5 dark:border-white/5 shadow-xl">
-              <Heart className="w-8 h-8 text-emerald-500 dark:text-emerald-400 fill-emerald-500/10 dark:fill-emerald-400/10" />
-            </div>
-          </div>
           
           {currentStep === 0 ? (
             <>
