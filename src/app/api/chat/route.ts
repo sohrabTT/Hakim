@@ -12,9 +12,19 @@ interface ChatRequestBody {
   }
 }
 
+import { getSession } from '@/lib/auth'
+
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || ''
 
 export async function POST(request: Request) {
+  const session = await getSession()
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
   const body = (await request.json()) as ChatRequestBody
   const { messages, userProfile, isTranslationMode } = body
 

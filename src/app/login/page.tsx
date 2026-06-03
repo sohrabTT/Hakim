@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useUser } from '@/context/user-context'
-import { Heart, User, Lock, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
+import { User, Lock, ArrowRight, ShieldCheck } from 'lucide-react'
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -78,15 +78,9 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-[440px] px-6">
         {/* Logo/Brand Section */}
         <div className="flex flex-col items-center mb-10 space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-20 dark:opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-            <div className="relative flex items-center justify-center w-20 h-20 bg-white dark:bg-[#0f172a] rounded-2xl border border-black/5 dark:border-white/5 shadow-xl dark:shadow-2xl">
-              <Heart className="w-10 h-10 text-emerald-500 dark:text-emerald-400 fill-emerald-500/10 dark:fill-emerald-400/10" />
-            </div>
-          </div>
           <div className="text-center space-y-2">
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-2">
-              حکیم <Sparkles className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+            <h1 className="text-4xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">
+              حکیم
             </h1>
             <p className="text-slate-500 dark:text-gray-400 text-lg font-medium">
               {isLogin ? 'هوش مصنوعی سلامت و درمان' : 'شروع یک تجربه جدید در سلامت'}

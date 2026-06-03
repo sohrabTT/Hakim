@@ -19,6 +19,17 @@ export interface UserProfile {
   specialization?: string
   level?: 'specialist' | 'subspecialist' | 'general'
   department?: string
+  gender?: string
+  weight?: string
+  height?: string
+  bloodType?: string
+  underlyingDiseases?: string
+  drugAllergies?: string
+  foodAllergies?: string
+  currentMedications?: string
+  previousSurgeries?: string
+  smokingAlcohol?: string
+  activityLevel?: string
   createdAt: Date
 }
 
@@ -26,6 +37,7 @@ interface UserContextType {
   user: AuthUser | null
   profile: UserProfile | null
   isOnboarded: boolean
+  isMedicalComplete: boolean
   language: Language
   isLoading: boolean
   authLoading: boolean
@@ -120,12 +132,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const isMedicalComplete = !!(profile && profile.gender && profile.weight && profile.height && profile.bloodType)
+
   return (
     <UserContext.Provider
       value={{
         user,
         profile,
         isOnboarded: !!profile,
+        isMedicalComplete,
         language,
         isLoading,
         authLoading,

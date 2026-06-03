@@ -6,6 +6,7 @@ import { ChatMessage } from '@/components/chat-message'
 import { ChatInput } from '@/components/chat-input'
 import { ChatHistory } from '@/components/chat-history'
 import { Onboarding } from '@/components/onboarding'
+import { PatientMedicalForm } from '@/components/patient-medical-form'
 import { SurgeryDietForm } from '@/components/surgery-diet-form'
 import { useToast } from '@/hooks/use-toast'
 import { Share2, Menu, Sun, Moon, LogOut, Heart } from 'lucide-react'
@@ -31,7 +32,7 @@ interface ChatSession {
 export default function ChatPage() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const { user, profile, isOnboarded, logout, authLoading } = useUser()
+  const { user, profile, isOnboarded, isMedicalComplete, logout, authLoading } = useUser()
   const { toast } = useToast()
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
@@ -45,6 +46,7 @@ export default function ChatPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string>('')
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showMedicalForm, setShowMedicalForm] = useState(false)
   const [showSurgeryForm, setShowSurgeryForm] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -56,8 +58,11 @@ export default function ChatPage() {
         router.push('/doctor')
       } else if (!isOnboarded) {
         setShowOnboarding(true)
+      } else if (!isMedicalComplete && profile?.role === 'patient') {
+        setShowMedicalForm(true)
       } else {
         setShowOnboarding(false)
+        setShowMedicalForm(false)
       }
     }
   }, [authLoading, user, isOnboarded, profile, router])
@@ -372,7 +377,16 @@ export default function ChatPage() {
   }
 
   if (showOnboarding) {
-    return <Onboarding onComplete={() => setShowOnboarding(false)} />
+    return <Onboarding onComplete={() => {
+      setShowOnboarding(false)
+      if (!isMedicalComplete && profile?.role === 'patient') {
+        setShowMedicalForm(true)
+      }
+    }} />
+  }
+
+  if (showMedicalForm) {
+    return <PatientMedicalForm onComplete={() => setShowMedicalForm(false)} />
   }
 
   return (

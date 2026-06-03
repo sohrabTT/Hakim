@@ -42,6 +42,18 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const toEnglishDigits = (str: string) => {
+    const persianMap: Record<string, string> = {
+      '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+      '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+    }
+    const arabicMap: Record<string, string> = {
+      '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+      '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+    }
+    return str.split('').map(c => persianMap[c] || arabicMap[c] || c).join('')
+  }
+
   const baseSteps = [
     { key: 'language', title: 'onboarding.welcome', subtitle: 'onboarding.subtitle' },
     { key: 'role', title: 'onboarding.step0Title', subtitle: 'onboarding.step0Subtitle' },
@@ -78,7 +90,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       if (!data.firstName.trim()) newErrors.firstName = 'نام الزامی است'
       if (!data.lastName.trim()) newErrors.lastName = 'نام خانوادگی الزامی است'
     } else if (currentStepKey === 'phone') {
-      const phoneClean = data.phone.replace(/\D/g, '')
+      const englishPhone = toEnglishDigits(data.phone)
+      const phoneClean = englishPhone.replace(/\D/g, '')
       if (!data.phone.trim()) {
         newErrors.phone = 'شماره تماس الزامی است'
       } else if (phoneClean.length < 10) {
@@ -157,7 +170,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setData({ ...data, [field]: value })
+    setData({ ...data, [field]: field === 'phone' ? toEnglishDigits(value) : value })
     if (errors[field]) {
       setErrors({ ...errors, [field]: '' })
     }
@@ -165,17 +178,16 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const renderHakimText = () => {
     const text = t(language, 'onboarding.welcome')
-    if (language === 'fa' || language === 'ar') {
-      const parts = text.split('حکیم')
-      if (parts.length > 1) {
-        return (
-          <>
-            {parts[0]}
-            <span className="noto-nastaliq-urdu-custom text-green-600 dark:text-green-400 mx-1">حکیم</span>
-            {parts[1]}
-          </>
-        )
-      }
+    const word = language === 'en' ? 'Hakim' : 'حکیم'
+    const parts = text.split(word)
+    if (parts.length > 1) {
+      return (
+        <>
+          {parts[0]}
+          <span className={`${language === 'fa' || language === 'ar' ? 'noto-nastaliq-urdu-custom' : ''} text-green-600 dark:text-green-400 mx-1`}>{word}</span>
+          {parts[1]}
+        </>
+      )
     }
     return text
   }
